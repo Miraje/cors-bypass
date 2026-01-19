@@ -9,19 +9,50 @@
 <body>
   <div class="container">
     <h1>CORS Bypass</h1>
+
     <div class="status-container">
       <div class="status-indicator" id="statusIndicator"></div>
       <span id="statusText">Enabled</span>
     </div>
+
     <button id="toggleButton" class="toggle-btn">Disable CORS Bypass</button>
-    <div class="info">
-      <p>This extension uses <strong>Chrome Debugger API</strong> for the <strong>active tab only</strong>:</p>
-      <p>Adds Origin header to requests:<br><code>Origin: [request URL origin]</code></p>
-      <p>Example:<br>Request to https://api.com adds<br><code>Origin: https://api.com</code></p>
-      <p class="warning">⚠️ You'll see "DevTools is debugging" message when active</p>
-      <p class="warning">⚠️ Use only for development purposes. Do not use in production.</p>
-      <p class="warning">⚠️ Disable it when not needed.</p>
-    </div>
+
+    <section class="config-section">
+      <h2>Domain Configuration</h2>
+      <div class="radio-group">
+        <label class="radio-label">
+          <input type="radio" name="domainMode" id="interceptAllRadio" value="all" checked>
+          <span>Intercept all domains</span>
+        </label>
+        <label class="radio-label">
+          <input type="radio" name="domainMode" id="interceptSpecificRadio" value="specific">
+          <span>Intercept specific domains only</span>
+        </label>
+      </div>
+
+      <div id="domainListContainer" class="domain-list-container" style="display: none;">
+        <label for="domainInput">Domains (one per line):</label>
+        <p class="hint">Enter domain fragments - matches if URL <strong>contains</strong> the text</p>
+        <textarea
+          id="domainInput"
+          class="domain-input"
+          placeholder="sf-mco&#10;gateway-service&#10;configuration-service"
+          rows="5"
+          aria-label="Domain list"></textarea>
+        <button id="saveDomains" class="save-btn">Save Domains</button>
+        <div id="saveMessage" class="save-message" role="status" aria-live="polite"></div>
+      </div>
+    </section>
+
+    <section class="info">
+      <p><strong>How it works:</strong></p>
+      <ul>
+        <li>Adds Origin header to requests</li>
+        <li>Adds CORS headers to responses</li>
+      </ul>
+      <p id="currentDomains" class="current-domains">Currently intercepting: <strong>All domains</strong></p>
+      <p class="warning">⚠️ For development only. Disable when not in use.</p>
+    </section>
   </div>
   <script src="popup.js"></script>
 </body>
