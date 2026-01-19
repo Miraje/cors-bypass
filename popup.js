@@ -15,7 +15,7 @@ const currentDomains = document.getElementById('currentDomains');
 // State
 let isEnabled = true;
 let interceptAll = true;
-let targetDomains = ['sf-mco', 'gateway-service', 'configuration-service'];
+let targetDomains = ['sf-mco'];
 
 // Update UI
 const updateUI = () => {
@@ -42,7 +42,7 @@ const updateDomainDisplay = () => {
 chrome.storage.local.get(['corsEnabled', 'interceptAll', 'targetDomains'], (result) => {
   isEnabled = result.corsEnabled !== false;
   interceptAll = result.interceptAll !== false;
-  targetDomains = result.targetDomains || ['sf-mco', 'gateway-service', 'configuration-service'];
+  targetDomains = result.targetDomains || ['sf-mco'];
 
   // Update radio buttons
   if (interceptAll) {
