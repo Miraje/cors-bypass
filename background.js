@@ -19,6 +19,23 @@ let isEnabled = true;
 let targetDomains = [];
 let interceptAll = true; // By default, intercept all domains
 
+// Cookie cache: hostname -> cookie header string (populated asynchronously, read synchronously)
+const cookieCache = {};
+
+const updateCookieCache = (hostname) => {
+  chrome.cookies.getAll({ domain: hostname }, (cookies) => {
+    if (cookies && cookies.length > 0) {
+      cookieCache[hostname] = cookies.map(c => `${c.name}=${c.value}`).join('; ');
+    }
+  });
+};
+
+// Keep cookie cache warm whenever cookies change
+chrome.cookies.onChanged.addListener(({ cookie }) => {
+  const hostname = cookie.domain.replace(/^\./, '');
+  updateCookieCache(hostname);
+});
+
 // Utilities
 const shouldProcessUrl = (url) => {
   if (interceptAll) return true;
@@ -59,14 +76,41 @@ chrome.storage.onChanged.addListener((changes) => {
   }
 });
 
-// Intercept requests - add Origin header
+// Pre-warm the cookie cache for any domain we see traffic to
+chrome.webRequest.onBeforeRequest.addListener(
+  ({ url }) => {
+    try {
+      const hostname = new URL(url).hostname;
+      if (hostname && !cookieCache[hostname]) {
+        updateCookieCache(hostname);
+      }
+    } catch (_) {}
+  },
+  { urls: ['<all_urls>'] }
+);
+
+// Intercept requests - add Origin header; inject cookies into OPTIONS preflights to avoid 401
 chrome.webRequest.onBeforeSendHeaders.addListener(
-  ({ url, requestHeaders = [] }) => {
+  ({ url, method, requestHeaders = [] }) => {
     if (!isEnabled || !shouldProcessUrl(url)) return;
 
     const origin = new URL(url).origin;
-    const headers = requestHeaders.filter(h => h.name.toLowerCase() !== 'origin');
+    let headers = requestHeaders.filter(h => h.name.toLowerCase() !== 'origin');
     headers.push({ name: 'Origin', value: origin });
+
+    // OPTIONS = preflight request. Browsers strip credentials from preflights, which causes
+    // servers that require auth (e.g. Jira) to return 401. Inject session cookies so the
+    // server can authenticate the preflight and return 200 instead.
+    if (method === 'OPTIONS') {
+      const hostname = new URL(url).hostname;
+      // Trigger async cache fill if not already cached (helps future retries)
+      if (!cookieCache[hostname]) updateCookieCache(hostname);
+      const cookieStr = cookieCache[hostname];
+      if (cookieStr) {
+        headers = headers.filter(h => h.name.toLowerCase() !== 'cookie');
+        headers.push({ name: 'Cookie', value: cookieStr });
+      }
+    }
 
     return { requestHeaders: headers };
   },
