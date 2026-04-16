@@ -1,5 +1,5 @@
-# CORS Bypass Chrome Extension
-Chrome extension for bypassing CORS restrictions during development using the webRequest API.
+# CORS Bypass Edge Extension
+Edge extension for bypassing CORS restrictions during development using the webRequest API.
 ## Features
 - ✅ Automatic Origin header injection
 - ✅ CORS header management for responses
@@ -7,10 +7,10 @@ Chrome extension for bypassing CORS restrictions during development using the we
 - ✅ **User-configurable domain list**
 - ✅ **Intercept all domains by default** (or specific domains only)
 ## Installation
-1. Navigate to `chrome://extensions/`
+1. Navigate to `edge://extensions/`
 2. Enable **Developer mode** (top-right toggle)
 3. Click **Load unpacked**
-4. Select the `chrome-extension` folder
+4. Select the `edge-extension` folder
 ## Usage
 ### Basic Usage
 Click the extension icon to toggle CORS bypass on/off:
@@ -62,7 +62,7 @@ Uses Chrome's **webRequest API** to intercept and modify HTTP headers:
 // Access-Control-Expose-Headers: *
 ```
 ## Technical Details
-- **API:** Chrome webRequest API (standard, reliable)
+- **API:** Edge webRequest API (standard, reliable)
 - **Manifest:** Version 2
 - **Permissions:** `webRequest`, `webRequestBlocking`, `storage`, `<all_urls>`
 - **Default Mode:** Intercept all domains
@@ -95,7 +95,7 @@ The extension comes pre-configured with these domains (when using specific mode)
 **Extension not working?**
 1. Make sure the extension is enabled (green indicator)
 2. Check if you're using "specific domains" mode and the domain is in your list
-3. Reload the extension: `chrome://extensions/` → Click refresh button
+3. Reload the extension: `edge://extensions/` → Click refresh button
 4. Reload the webpage you're testing
 **Domains not being intercepted?**
 1. Check domain spelling in the configuration
