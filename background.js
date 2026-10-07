@@ -7,12 +7,14 @@ const BADGE_COLORS = {
 };
 const DEFAULT_DOMAINS = ['sf-mco'];
 const CORS_HEADERS = [
-  { name: 'Access-Control-Allow-Origin', value: '*' },
   { name: 'Access-Control-Allow-Methods', value: 'GET, POST, PUT, DELETE, PATCH, OPTIONS' },
   { name: 'Access-Control-Allow-Headers', value: '*' },
   { name: 'Access-Control-Allow-Credentials', value: 'true' },
   { name: 'Access-Control-Expose-Headers', value: '*' }
 ];
+
+// requestId -> caller's real Origin, captured before it is rewritten below
+const callerOrigins = new Map();
 
 // State
 let isEnabled = true;
@@ -91,8 +93,11 @@ chrome.webRequest.onBeforeRequest.addListener(
 
 // Intercept requests - add Origin header; inject cookies into OPTIONS preflights to avoid 401
 chrome.webRequest.onBeforeSendHeaders.addListener(
-  ({ url, method, requestHeaders = [] }) => {
+  ({ requestId, url, method, requestHeaders = [] }) => {
     if (!isEnabled || !shouldProcessUrl(url)) return;
+
+    const callerOrigin = requestHeaders.find(h => h.name.toLowerCase() === 'origin');
+    if (callerOrigin) callerOrigins.set(requestId, callerOrigin.value);
 
     const origin = new URL(url).origin;
     let headers = requestHeaders.filter(h => h.name.toLowerCase() !== 'origin');
@@ -120,10 +125,12 @@ chrome.webRequest.onBeforeSendHeaders.addListener(
 
 // Intercept responses - add CORS headers
 chrome.webRequest.onHeadersReceived.addListener(
-  ({ url, responseHeaders = [] }) => {
+  ({ requestId, url, responseHeaders = [] }) => {
     if (!isEnabled || !shouldProcessUrl(url)) return;
 
     const headers = responseHeaders.filter(h => !h.name.toLowerCase().startsWith('access-control-'));
+    // Browsers reject '*' on credentialed requests, so echo the caller's origin when known.
+    headers.push({ name: 'Access-Control-Allow-Origin', value: callerOrigins.get(requestId) || '*' });
     headers.push(...CORS_HEADERS);
 
     return { responseHeaders: headers };
@@ -131,3 +138,7 @@ chrome.webRequest.onHeadersReceived.addListener(
   { urls: ['<all_urls>'] },
   ['blocking', 'responseHeaders', 'extraHeaders']
 );
+
+const forgetCaller = ({ requestId }) => callerOrigins.delete(requestId);
+chrome.webRequest.onCompleted.addListener(forgetCaller, { urls: ['<all_urls>'] });
+chrome.webRequest.onErrorOccurred.addListener(forgetCaller, { urls: ['<all_urls>'] });
